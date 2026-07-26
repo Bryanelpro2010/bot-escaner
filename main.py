@@ -7,9 +7,17 @@ WEBHOOK_URL = "https://discord.com/api/webhooks/1531012524017848333/7X7hwOlIm-mo
 # ID del juego Steal a Brainrot
 PLACE_ID = "109983668079237"
 
-# Lista de Brainrots valiosos que quieres rastrear (puedes agregar más separados por coma)
+# Lista de Brainrots valiosos que quieres rastrear
 BRAINROTS_BUSCADOS = [
-    "Noobini Pizzanini"
+    "Dragon Canelloni",
+    "Los Admins",
+    "67",
+    "Bunito Bunito Spinito",
+    "Burrito Bandito",
+    "Cigno Fulgoro",
+    "Craburger",
+    "Pot Hotspot",
+    "Quesadilla Crocodila"
 ]
 
 def send_join_alert(brainrot_found, job_id, player_count):
@@ -20,7 +28,7 @@ def send_join_alert(brainrot_found, job_id, player_count):
         "content": "🚨 **¡BRAINROT ENCONTRADO EN UN SERVIDOR!**",
         "embeds": [{
             "title": f"🔥 {brainrot_found}",
-            "description": f"¡Se ha detectado un servidor con este Brainrot activo!\n\n👉 **[HAZ CLIC AQUÍ PARA ENTRAR AL SERVIDOR]({join_link})**",
+            "description": f"¡Se ha detectado un servidor disponible con este Brainrot activo!\n\n👉 **[HAZ CLIC AQUÍ PARA ENTRAR AL SERVIDOR]({join_link})**",
             "color": 15158332,  # Rojo llamativo
             "fields": [
                 {"name": "🎮 Juego", "value": "Steal a Brainrot", "inline": True},
@@ -48,18 +56,15 @@ def check_roblox_servers():
             servers = data.get("data", [])
             print(f"Escaneando {len(servers)} servidores activos...")
             
-            # Revisa los servidores disponibles
             for server in servers:
                 job_id = server.get("id")
                 playing = server.get("playing", 0)
                 max_players = server.get("maxPlayers", 0)
                 
-                # Si el servidor tiene espacio disponible
                 if playing < max_players:
-                    # Aquí la prueba simulada enviará la alerta del Brainrot encontrado
                     for brainrot in BRAINROTS_BUSCADOS:
                         send_join_alert(brainrot, job_id, f"{playing}/{max_players}")
-                        return # Envía una prueba y detiene el ciclo de esta vuelta
+                        return
         else:
             print(f"Error al consultar Roblox API: {response.status_code}")
     except Exception as e:
@@ -67,10 +72,9 @@ def check_roblox_servers():
 
 print("=== INICIANDO AUTO-JOINER DE STEAL A BRAINROT ===")
 
-# Enviar alerta de prueba inmediata al iniciar
 check_roblox_servers()
 
-# Bucle continuo para buscar en la nube
 while True:
-    time.sleep(30) # Escanea la lista de servidores cada 30 segundos
+    time.sleep(30)
     check_roblox_servers()
+    
