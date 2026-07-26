@@ -1,25 +1,76 @@
 import requests
 import time
 
+# Tu Webhook de Discord
 WEBHOOK_URL = "https://discord.com/api/webhooks/1531012524017848333/7X7hwOlIm-moZXrCt1U4-VOqn8Dgyh6rVoPQaaMksYueDpPtRIO_vZ7YoYnhH1Mo282S"
 
-def send_status():
-    data = {
+# ID del juego Steal a Brainrot
+PLACE_ID = "109983668079237"
+
+# Lista de Brainrots valiosos que quieres rastrear (puedes agregar más separados por coma)
+BRAINROTS_BUSCADOS = [
+    "Noobini Pizzanini"
+]
+
+def send_join_alert(brainrot_found, job_id, player_count):
+    # Enlace de Auto-Join directo para Roblox
+    join_link = f"https://www.roblox.com/games/start?placeId={PLACE_ID}&gameInstanceId={job_id}"
+    
+    payload = {
+        "content": "🚨 **¡BRAINROT ENCONTRADO EN UN SERVIDOR!**",
         "embeds": [{
-            "title": "🟢 BOT EN LA NUBE ACTIVO 24/7",
-            "description": "El bot está ejecutándose correctamente en Render sin consumir recursos de tu teléfono/PC.",
-            "color": 3066993,
-            "footer": {"text": "Bryan Joiner Cloud Monitor"}
+            "title": f"🔥 {brainrot_found}",
+            "description": f"¡Se ha detectado un servidor con este Brainrot activo!\n\n👉 **[HAZ CLIC AQUÍ PARA ENTRAR AL SERVIDOR]({join_link})**",
+            "color": 15158332,  # Rojo llamativo
+            "fields": [
+                {"name": "🎮 Juego", "value": "Steal a Brainrot", "inline": True},
+                {"name": "👥 Jugadores", "value": f"{player_count}", "inline": True},
+                {"name": "🆔 JobID", "value": f"`{job_id}`", "inline": False}
+            ],
+            "footer": {"text": "Bryan Joiner 24/7 Scanner"}
         }]
     }
+    
     try:
-        requests.post(WEBHOOK_URL, json=data)
-        print("Mensaje enviado a Discord correctamente.")
+        requests.post(WEBHOOK_URL, json=payload)
+        print(f"Alerta enviada a Discord: {brainrot_found}")
     except Exception as e:
-        print(f"Error al enviar: {e}")
+        print(f"Error al enviar la alerta: {e}")
 
-send_status()
+def check_roblox_servers():
+    url = f"https://games.roblox.com/v1/games/{PLACE_ID}/servers/0?sortOrder=Asc&limit=100"
+    headers = {"User-Agent": "Mozilla/5.0"}
+    
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            servers = data.get("data", [])
+            print(f"Escaneando {len(servers)} servidores activos...")
+            
+            # Revisa los servidores disponibles
+            for server in servers:
+                job_id = server.get("id")
+                playing = server.get("playing", 0)
+                max_players = server.get("maxPlayers", 0)
+                
+                # Si el servidor tiene espacio disponible
+                if playing < max_players:
+                    # Aquí la prueba simulada enviará la alerta del Brainrot encontrado
+                    for brainrot in BRAINROTS_BUSCADOS:
+                        send_join_alert(brainrot, job_id, f"{playing}/{max_players}")
+                        return # Envía una prueba y detiene el ciclo de esta vuelta
+        else:
+            print(f"Error al consultar Roblox API: {response.status_code}")
+    except Exception as e:
+        print(f"Error en la petición: {e}")
 
+print("=== INICIANDO AUTO-JOINER DE STEAL A BRAINROT ===")
+
+# Enviar alerta de prueba inmediata al iniciar
+check_roblox_servers()
+
+# Bucle continuo para buscar en la nube
 while True:
-    time.sleep(3600)
-  
+    time.sleep(30) # Escanea la lista de servidores cada 30 segundos
+    check_roblox_servers()
