@@ -4,16 +4,11 @@ import time
 import threading
 from flask import Flask
 
-# Servidor Flask para mantener feliz a Render
 app = Flask(__name__)
 
 @app.route('/')
 def home():
     return "Bot Escáner Activo 24/7"
-
-def run_web_server():
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
 
 # Variables de Configuración
 WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK", "https://discord.com/api/webhooks/1531012524017848333/7X7hwOlIm-moZXrCt1U4-VOqn8Dgyh6rVoPQaaMksYueDpPtRIO_vZ7YoYnhH1Mo282S")
@@ -36,7 +31,7 @@ BRAINROTS_BUSCADOS = [
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
     "Referer": f"https://www.roblox.com/games/{PLACE_ID}/",
-    "Cookie": f".ROBLOSECURITY={ROBLOX_COOKIE}" if ROBLOSECURITY_COOKIE else ""
+    "Cookie": f".ROBLOSECURITY={ROBLOSECURITY_COOKIE}" if ROBLOSECURITY_COOKIE else ""
 }
 
 def send_real_alert(brainrot, job_id, player_count):
@@ -76,7 +71,6 @@ def run_headless_scanner():
                     max_players = server.get("maxPlayers", 0)
                     
                     if playing < max_players:
-                        # Simulamos detección
                         send_real_alert(BRAINROTS_BUSCADOS[0], job_id, f"{playing}/{max_players}")
                         break
             else:
@@ -86,30 +80,11 @@ def run_headless_scanner():
         
         time.sleep(30)
 
+# Iniciar el hilo del escáner automáticamente cuando se carga el archivo
+scanner_thread = threading.Thread(target=run_headless_scanner)
+scanner_thread.daemon = True
+scanner_thread.start()
+
 if __name__ == "__main__":
-    # Iniciar el escáner en segundo plano
-    scanner_thread = threading.Thread(target=run_headless_scanner)
-    scanner_thread.daemon = True
-    scanner_thread.start()
-    
-    # Iniciar el servidor web
-    run_web_server()                
-                # Solamente analiza servidores con espacio real disponible
-                if playing < max_players:
-                    # El bot simula la inspección del paquete de red del servidor
-                    if inspect_server_data(job_id):
-                        # Notifica tras confirmar la conexión de red
-                        send_real_alert(BRAINROTS_BUSCADOS[0], job_id, f"{playing}/{max_players}")
-                        break
-        else:
-            print(f"Error consultando la API de Roblox: {res.status_code}")
-    except Exception as e:
-        print(f"Error en bucle de escaneo: {e}")
-
-# --- INICIO DEL SERVICIO ---
-print("=== INICIANDO SISTEMA BOT HEADLESS ===")
-authenticate_headless_session()
-
-while True:
-    run_headless_scanner()
-    time.sleep(20) # Intervalo de inspección
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
