@@ -2,15 +2,16 @@ import os
 import requests
 import time
 import threading
+import subprocess
 from flask import Flask
 
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Bot Escáner Activo 24/7"
+    return "Bot Escáner Headless Activo 24/7"
 
-# Variables de Configuración
+# Variables de Configuración desde Render
 WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK", "https://discord.com/api/webhooks/1531012524017848333/7X7hwOlIm-moZXrCt1U4-VOqn8Dgyh6rVoPQaaMksYueDpPtRIO_vZ7YoYnhH1Mo282S")
 ROBLOSECURITY_COOKIE = os.environ.get("ROBLOSECURITY_COOKIE", "")
 
@@ -33,6 +34,19 @@ headers = {
     "Referer": f"https://www.roblox.com/games/{PLACE_ID}/",
     "Cookie": f".ROBLOSECURITY={ROBLOSECURITY_COOKIE}" if ROBLOSECURITY_COOKIE else ""
 }
+
+def join_game_instance(place_id, job_id):
+    """Lanza la instancia de Roblox en la pantalla invisible (DISPLAY=:99)"""
+    launch_cmd = (
+        f"DISPLAY=:99 roblox-player://placeId={place_id}"
+        f"&gameInstanceId={job_id}"
+        f"&launchData=autojoin"
+    )
+    try:
+        subprocess.Popen(launch_cmd, shell=True)
+        print(f"[HEADLESS] Entrando al servidor {job_id} en pantalla invisible...")
+    except Exception as e:
+        print(f"Error al iniciar el cliente en pantalla virtual: {e}")
 
 def send_real_alert(brainrot, job_id, player_count):
     join_link = f"https://www.roblox.com/games/start?placeId={PLACE_ID}&gameInstanceId={job_id}"
@@ -71,16 +85,23 @@ def run_headless_scanner():
                     max_players = server.get("maxPlayers", 0)
                     
                     if playing < max_players:
+                        # 1. Ejecutar la orden para unirse en la pantalla invisible
+                        join_game_instance(PLACE_ID, job_id)
+                        
+                        # 2. Enviar la alerta inicial a Discord
                         send_real_alert(BRAINROTS_BUSCADOS[0], job_id, f"{playing}/{max_players}")
+                        
+                        # Esperar 20 segundos dentro del servidor antes de escanear el siguiente
+                        time.sleep(20)
                         break
             else:
-                print(f"Error API: {res.status_code}")
+                print(f"Error API Roblox: {res.status_code}")
         except Exception as e:
-            print(f"Error en bucle: {e}")
+            print(f"Error en bucle de escaneo: {e}")
         
-        time.sleep(30)
+        time.sleep(15)
 
-# Iniciar el hilo del escáner automáticamente cuando se carga el archivo
+# Iniciar el escáner en segundo plano
 scanner_thread = threading.Thread(target=run_headless_scanner)
 scanner_thread.daemon = True
 scanner_thread.start()
@@ -88,3 +109,4 @@ scanner_thread.start()
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+    
