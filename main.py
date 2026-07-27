@@ -36,17 +36,15 @@ headers = {
 }
 
 def join_game_instance(place_id, job_id):
-    """Lanza la instancia de Roblox en la pantalla invisible (DISPLAY=:99)"""
-    launch_cmd = (
-        f"DISPLAY=:99 roblox-player://placeId={place_id}"
-        f"&gameInstanceId={job_id}"
-        f"&launchData=autojoin"
-    )
+    """Lanza la instancia de Roblox usando el protocolo manejado por el sistema virtual"""
+    join_url = f"https://www.roblox.com/games/start?placeId={place_id}&gameInstanceId={job_id}"
+    launch_cmd = f"DISPLAY=:99 xdg-open '{join_url}'"
+    
     try:
         subprocess.Popen(launch_cmd, shell=True)
-        print(f"[HEADLESS] Entrando al servidor {job_id} en pantalla invisible...")
+        print(f"[HEADLESS] Ejecutando salto al servidor {job_id} en pantalla invisible...")
     except Exception as e:
-        print(f"Error al iniciar el cliente en pantalla virtual: {e}")
+        print(f"Error al iniciar el enlace: {e}")
 
 def send_real_alert(brainrot, job_id, player_count):
     join_link = f"https://www.roblox.com/games/start?placeId={PLACE_ID}&gameInstanceId={job_id}"
@@ -85,13 +83,12 @@ def run_headless_scanner():
                     max_players = server.get("maxPlayers", 0)
                     
                     if playing < max_players:
-                        # 1. Ejecutar la orden para unirse en la pantalla invisible
+                        # 1. Intentar el salto al servidor en la pantalla invisible
                         join_game_instance(PLACE_ID, job_id)
                         
-                        # 2. Enviar la alerta inicial a Discord
+                        # 2. Enviar la alerta
                         send_real_alert(BRAINROTS_BUSCADOS[0], job_id, f"{playing}/{max_players}")
                         
-                        # Esperar 20 segundos dentro del servidor antes de escanear el siguiente
                         time.sleep(20)
                         break
             else:
@@ -109,4 +106,3 @@ scanner_thread.start()
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-    
