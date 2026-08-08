@@ -5,7 +5,7 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-# Webhook de Discord configurado
+# Webhook de Discord
 WEBHOOK_URL = os.environ.get(
     "DISCORD_WEBHOOK", 
     "https://discord.com/api/webhooks/1531012524017848333/7X7hwOlIm-moZXrCt1U4-VOqn8Dgyh6rVoPQaaMksYueDpPtRIO_vZ7YoYnhH1Mo282S"
@@ -13,12 +13,12 @@ WEBHOOK_URL = os.environ.get(
 
 PLACE_ID = "109983668079237"
 
-# Variable para guardar en memoria el último servidor detectado
 last_target_server = {
     "job_id": "",
     "brainrot": "",
     "priority": 0,
-    "place_id": PLACE_ID
+    "place_id": PLACE_ID,
+    "players": 0
 }
 
 PRIORITIES = {
@@ -61,6 +61,7 @@ def receive_report():
     finder = data.get("finder", "Anónimo")
     job_id = data.get("job_id", "")
     place_id = data.get("place_id", PLACE_ID)
+    players_count = int(data.get("players", 0))
 
     og_list = ["Strawberry Elephant", "Skibidi Toilet", "John Pork", "Meowl", "Headlees Horseman", "Spyder Elephant"]
     if brainrot_name in og_list:
@@ -71,7 +72,8 @@ def receive_report():
             "job_id": job_id,
             "brainrot": brainrot_name,
             "priority": priority,
-            "place_id": place_id
+            "place_id": place_id,
+            "players": players_count
         }
 
     if is_duplicate(job_id, brainrot_name):
@@ -89,6 +91,7 @@ def receive_report():
             "fields": [
                 {"name": "🧠 Brainrot", "value": f"**{brainrot_name}**", "inline": True},
                 {"name": "⭐ Prioridad", "value": f"Nivel {priority}", "inline": True},
+                {"name": "👥 Jugadores", "value": f"{players_count} activos", "inline": True},
                 {"name": "👤 Encontrado por", "value": finder, "inline": True},
                 {"name": "🆔 JobID", "value": f"`{job_id}`", "inline": False}
             ],
@@ -105,6 +108,11 @@ def receive_report():
 
 @app.route('/get-target', methods=['GET'])
 def get_target():
+    return jsonify(last_target_server), 200
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
     return jsonify(last_target_server), 200
 
 if __name__ == "__main__":
