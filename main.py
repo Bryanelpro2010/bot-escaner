@@ -21,7 +21,7 @@ last_target_server = {
     "place_id": PLACE_ID
 }
 
-# Mapeo de colores y nombres por nivel de prioridad
+# Mapeo corregido con el Rango 8 (OG) bien definido
 PRIORITIES = {
     1: {"name": "🟢 COMÚN", "color": 5635925},
     2: {"name": "🔵 RARO", "color": 5592575},
@@ -30,7 +30,7 @@ PRIORITIES = {
     5: {"name": "🔴 MÍTICO", "color": 16733005},
     6: {"name": "⚡ BRAINROT GOD", "color": 16755200},
     7: {"name": "👑 SECRETO", "color": 65535},
-    8: {"name": "🔥 OG", "color": 16711680}
+    8: {"name": "🔥 OG EXCLUSIVO", "color": 16711680}
 }
 
 recent_reports = {}
@@ -66,6 +66,11 @@ def receive_report():
     job_id = data.get("job_id", "")
     place_id = data.get("place_id", PLACE_ID)
 
+    # Forzar manualmente por seguridad si el nombre es de la categoría OG (Rango 8)
+    og_list = ["Strawberry Elephant", "Skibidi Toilet", "John Pork", "Meowl", "Headlees Horseman", "Spyder Elephant"]
+    if brainrot_name in og_list:
+        priority = 8
+
     # Guardar automáticamente como el último objetivo para el Server Hop
     if job_id:
         last_target_server = {
@@ -78,11 +83,11 @@ def receive_report():
     if is_duplicate(job_id, brainrot_name):
         return jsonify({"status": "ignored", "message": "Reporte duplicado"}), 200
 
-    tier = PRIORITIES.get(priority, PRIORITIES[1])
+    tier = PRIORITIES.get(priority, PRIORITIES[8])
     join_link = f"https://www.roblox.com/games/start?placeId={place_id}&gameInstanceId={job_id}"
 
     payload = {
-        "content": "🚨 **¡ATENCIÓN @everyone! BRAINROT DE ALTO VALOR DETECTADO**" if priority >= 5 else None,
+        "content": "🚨 **¡ATENCIÓN @everyone! BRAINROT OG / ALTO VALOR DETECTADO**" if priority >= 5 else None,
         "embeds": [{
             "title": f"{tier['name']} - {brainrot_name}",
             "description": f"¡Un jugador ha detectado un Brainrot en vivo!\n\n👉 **[HAZ CLIC AQUÍ PARA ENTRAR AL SERVIDOR]({join_link})**",
@@ -108,7 +113,6 @@ def receive_report():
 
 @app.route('/get-target', methods=['GET'])
 def get_target():
-    # Devuelve el último servidor guardado para que el botón de Roblox lo lea
     return jsonify(last_target_server), 200
 
 if __name__ == "__main__":
