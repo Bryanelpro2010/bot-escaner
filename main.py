@@ -88,13 +88,16 @@ def receive_report():
 @app.route('/get-target', methods=['GET'])
 def get_target():
     try:
-        url = f"https://games.roblox.com/v1/games/{PLACE_ID}/servers/Public?sortOrder=Asc&limit=10"
+        url = f"https://games.roblox.com/v1/games/{PLACE_ID}/servers/Public?sortOrder=Asc&limit=25"
         headers = {"User-Agent": "Mozilla/5.0"}
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
             servers = response.json().get("data", [])
             for srv in servers:
-                if srv.get("playing", 0) < srv.get("maxPlayers", 0):
+                playing = srv.get("playing", 0)
+                max_players = srv.get("maxPlayers", 0)
+                # Exigimos que al menos queden 2 espacios libres para evitar el error 772 de servidor lleno
+                if max_players > 0 and (max_players - playing) >= 2:
                     return jsonify({
                         "job_id": srv.get("id"),
                         "place_id": PLACE_ID
