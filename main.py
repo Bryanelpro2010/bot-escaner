@@ -5,7 +5,6 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-# Webhook de Discord configurado
 WEBHOOK_URL = os.environ.get(
     "DISCORD_WEBHOOK", 
     "https://discord.com/api/webhooks/1531012524017848333/7X7hwOlIm-moZXrCt1U4-VOqn8Dgyh6rVoPQaaMksYueDpPtRIO_vZ7YoYnhH1Mo282S"
@@ -88,10 +87,10 @@ def receive_report():
 
 @app.route('/get-target', methods=['GET'])
 def get_target():
-    # Consulta directamente a la API pública de Roblox para obtener un servidor real y funcional al instante
     try:
         url = f"https://games.roblox.com/v1/games/{PLACE_ID}/servers/Public?sortOrder=Asc&limit=10"
-        response = requests.get(url)
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(url, headers=headers)
         if response.status_code == 200:
             servers = response.json().get("data", [])
             for srv in servers:
@@ -100,10 +99,9 @@ def get_target():
                         "job_id": srv.get("id"),
                         "place_id": PLACE_ID
                     }), 200
-    except Exception as e:
+    except:
         pass
 
-    # Si por algo falla la API de Roblox, devuelve vacío para que Delta use su propio respaldo
     return jsonify({
         "job_id": "",
         "place_id": PLACE_ID
