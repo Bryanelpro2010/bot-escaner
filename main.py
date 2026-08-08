@@ -21,7 +21,6 @@ last_target_server = {
     "place_id": PLACE_ID
 }
 
-# Mapeo corregido con el Rango 8 (OG) bien definido
 PRIORITIES = {
     1: {"name": "🟢 COMÚN", "color": 5635925},
     2: {"name": "🔵 RARO", "color": 5592575},
@@ -38,20 +37,17 @@ recent_reports = {}
 def is_duplicate(job_id, brainrot_name):
     key = f"{job_id}_{brainrot_name}"
     current_time = time.time()
-    
     for k in list(recent_reports.keys()):
         if current_time - recent_reports[k] > 300:
             del recent_reports[k]
-
     if key in recent_reports:
         return True
-    
     recent_reports[key] = current_time
     return False
 
 @app.route('/')
 def home():
-    return "Servidor de Radar de Brainrots Activo 24/7 en Render", 200
+    return "Servidor Serverhoop Activo 24/7", 200
 
 @app.route('/report', methods=['POST'])
 def receive_report():
@@ -66,12 +62,10 @@ def receive_report():
     job_id = data.get("job_id", "")
     place_id = data.get("place_id", PLACE_ID)
 
-    # Forzar manualmente por seguridad si el nombre es de la categoría OG (Rango 8)
     og_list = ["Strawberry Elephant", "Skibidi Toilet", "John Pork", "Meowl", "Headlees Horseman", "Spyder Elephant"]
     if brainrot_name in og_list:
         priority = 8
 
-    # Guardar automáticamente como el último objetivo para el Server Hop
     if job_id:
         last_target_server = {
             "job_id": job_id,
@@ -81,13 +75,13 @@ def receive_report():
         }
 
     if is_duplicate(job_id, brainrot_name):
-        return jsonify({"status": "ignored", "message": "Reporte duplicado"}), 200
+        return jsonify({"status": "ignored", "message": "Duplicado"}), 200
 
-    tier = PRIORITIES.get(priority, PRIORITIES[8])
+    tier = PRIORITIES.get(priority, PRIORITIES[8] if priority == 8 else PRIORITIES[1])
     join_link = f"https://www.roblox.com/games/start?placeId={place_id}&gameInstanceId={job_id}"
 
     payload = {
-        "content": "🚨 **¡ATENCIÓN @everyone! BRAINROT OG / ALTO VALOR DETECTADO**" if priority >= 5 else None,
+        "content": "🚨 **¡ATENCIÓN @everyone! BRAINROT DE ALTO VALOR DETECTADO**" if priority >= 5 else None,
         "embeds": [{
             "title": f"{tier['name']} - {brainrot_name}",
             "description": f"¡Un jugador ha detectado un Brainrot en vivo!\n\n👉 **[HAZ CLIC AQUÍ PARA ENTRAR AL SERVIDOR]({join_link})**",
@@ -103,13 +97,11 @@ def receive_report():
     }
 
     try:
-        res = requests.post(WEBHOOK_URL, json=payload)
-        if res.status_code in [200, 204]:
-            return jsonify({"status": "success"}), 200
-        else:
-            return jsonify({"status": "error", "code": res.status_code}), 500
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        requests.post(WEBHOOK_URL, json=payload)
+    except:
+        pass
+
+    return jsonify({"status": "success"}), 200
 
 @app.route('/get-target', methods=['GET'])
 def get_target():
