@@ -88,8 +88,7 @@ def receive_report():
 @app.route('/get-target', methods=['GET'])
 def get_target():
     try:
-        # Pide únicamente servidores públicos de la lista principal de Roblox
-        url = f"https://games.roblox.com/v1/games/{PLACE_ID}/servers/Public?sortOrder=Asc&limit=50"
+        url = f"https://games.roblox.com/v1/games/{PLACE_ID}/servers/Public?sortOrder=Asc&limit=100"
         headers = {"User-Agent": "Mozilla/5.0"}
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
@@ -97,8 +96,8 @@ def get_target():
             for srv in servers:
                 playing = srv.get("playing", 0)
                 max_players = srv.get("maxPlayers", 0)
-                # Validamos que sea público, tenga espacio libre y NO sea un servidor privado oculto
-                if max_players > 0 and (max_players - playing) >= 2:
+                # Filtro estricto: Busca exclusivamente servidores con 6 o 7 jugadores
+                if 6 <= playing <= 7 and playing < max_players:
                     return jsonify({
                         "job_id": srv.get("id"),
                         "place_id": PLACE_ID
@@ -106,15 +105,6 @@ def get_target():
     except:
         pass
 
-    # Si no encuentra nada, devuelve vacío para evitar restricciones
-    return jsonify({
-        "job_id": "",
-        "place_id": PLACE_ID
-    }), 200
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
     return jsonify({
         "job_id": "",
         "place_id": PLACE_ID
