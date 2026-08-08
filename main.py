@@ -13,15 +13,6 @@ WEBHOOK_URL = os.environ.get(
 
 PLACE_ID = "109983668079237"
 
-# Variable para guardar el último servidor detectado con tiempo de expiración (15 minutos)
-last_target_server = {
-    "job_id": "",
-    "brainrot": "",
-    "priority": 0,
-    "place_id": PLACE_ID,
-    "timestamp": 0
-}
-
 PRIORITIES = {
     1: {"name": "🟢 COMÚN", "color": 5635925},
     2: {"name": "🔵 RARO", "color": 5592575},
@@ -52,7 +43,6 @@ def home():
 
 @app.route('/report', methods=['POST'])
 def receive_report():
-    global last_target_server
     data = request.json
     if not data:
         return jsonify({"status": "error", "message": "Sin datos"}), 400
@@ -66,16 +56,6 @@ def receive_report():
     og_list = ["Strawberry Elephant", "Skibidi Toilet", "John Pork", "Meowl", "Headlees Horseman", "Spyder Elephant"]
     if brainrot_name in og_list:
         priority = 8
-
-    # Guardamos el servidor asegurando que tenga marca de tiempo fresca
-    if job_id:
-        last_target_server = {
-            "job_id": job_id,
-            "brainrot": brainrot_name,
-            "priority": priority,
-            "place_id": place_id,
-            "timestamp": time.time()
-        }
 
     if is_duplicate(job_id, brainrot_name):
         return jsonify({"status": "ignored", "message": "Duplicado"}), 200
@@ -108,16 +88,26 @@ def receive_report():
 
 @app.route('/get-target', methods=['GET'])
 def get_target():
-    # Si el reporte tiene más de 15 minutos (900 segundos), lo borramos para que no tire error de servidor viejo/restringido
-    if last_target_server["timestamp"] > 0 and (time.time() - last_target_server["timestamp"] > 900):
-        return jsonify({
-            "job_id": "",
-            "brainrot": "",
-            "priority": 0,
-            "place_id": PLACE_ID
-        }), 200
+    # Consulta directamente a la API pública de Roblox para obtener un servidor real y funcional al instante
+    try:
+        url = f"https://games.roblox.com/v1/games/{PLACE_ID}/servers/Public?sortOrder=Asc&limit=10"
+        response = requests.get(url)
+        if response.status_code == 200:
+            servers = response.json().get("data", [])
+            for srv in servers:
+                if srv.get("playing", 0) < srv.get("maxPlayers", 0):
+                    return jsonify({
+                        "job_id": srv.get("id"),
+                        "place_id": PLACE_ID
+                    }), 200
+    except Exception as e:
+        pass
 
-    return jsonify(last_target_server), 200
+    # Si por algo falla la API de Roblox, devuelve vacío para que Delta use su propio respaldo
+    return jsonify({
+        "job_id": "",
+        "place_id": PLACE_ID
+    }), 200
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
