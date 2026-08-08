@@ -5,13 +5,21 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-# Webhook de Discord configurado por defecto
+# Webhook de Discord configurado
 WEBHOOK_URL = os.environ.get(
     "DISCORD_WEBHOOK", 
     "https://discord.com/api/webhooks/1531012524017848333/7X7hwOlIm-moZXrCt1U4-VOqn8Dgyh6rVoPQaaMksYueDpPtRIO_vZ7YoYnhH1Mo282S"
 )
 
 PLACE_ID = "109983668079237"
+
+# Variable para guardar en memoria el último servidor detectado
+last_target_server = {
+    "job_id": "",
+    "brainrot": "",
+    "priority": 0,
+    "place_id": PLACE_ID
+}
 
 # Mapeo de colores y nombres por nivel de prioridad
 PRIORITIES = {
@@ -21,17 +29,16 @@ PRIORITIES = {
     4: {"name": "🟡 LEGENDARIO", "color": 16776960},
     5: {"name": "🔴 MÍTICO", "color": 16733005},
     6: {"name": "⚡ BRAINROT GOD", "color": 16755200},
-    7: {"name": "👑 SECRETO", "color": 65535}
+    7: {"name": "👑 SECRETO", "color": 65535},
+    8: {"name": "🔥 OG", "color": 16711680}
 }
 
-# Registro en memoria para evitar alertas duplicadas (Límite: 1 cada 5 minutos por servidor/brainrot)
 recent_reports = {}
 
 def is_duplicate(job_id, brainrot_name):
     key = f"{job_id}_{brainrot_name}"
     current_time = time.time()
     
-    # Limpiar registros de más de 300 segundos
     for k in list(recent_reports.keys()):
         if current_time - recent_reports[k] > 300:
             del recent_reports[k]
@@ -48,6 +55,7 @@ def home():
 
 @app.route('/report', methods=['POST'])
 def receive_report():
+    global last_target_server
     data = request.json
     if not data:
         return jsonify({"status": "error", "message": "Sin datos"}), 400
@@ -57,6 +65,15 @@ def receive_report():
     finder = data.get("finder", "Anónimo")
     job_id = data.get("job_id", "")
     place_id = data.get("place_id", PLACE_ID)
+
+    # Guardar automáticamente como el último objetivo para el Server Hop
+    if job_id:
+        last_target_server = {
+            "job_id": job_id,
+            "brainrot": brainrot_name,
+            "priority": priority,
+            "place_id": place_id
+        }
 
     if is_duplicate(job_id, brainrot_name):
         return jsonify({"status": "ignored", "message": "Reporte duplicado"}), 200
@@ -88,6 +105,11 @@ def receive_report():
             return jsonify({"status": "error", "code": res.status_code}), 500
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/get-target', methods=['GET'])
+def get_target():
+    # Devuelve el último servidor guardado para que el botón de Roblox lo lea
+    return jsonify(last_target_server), 200
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
