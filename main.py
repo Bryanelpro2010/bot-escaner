@@ -38,7 +38,7 @@ def is_duplicate(job_id, brainrot_name):
 
 @app.route('/')
 def home():
-    return "Servidor Serverhoop Activo 24/7", 200
+    return "Servidor Serverhop Activo 24/7", 200
 
 @app.route('/report', methods=['POST'])
 def receive_report():
@@ -79,31 +79,45 @@ def receive_report():
     }
 
     try:
-        requests.post(WEBHOOK_URL, json=payload)
-    except:
-        pass
+        requests.post(WEBHOOK_URL, json=payload, timeout=5)
+    except Exception as e:
+        print(f"Error enviando webhook: {e}")
 
     return jsonify({"status": "success"}), 200
 
 @app.route('/get-target', methods=['GET'])
 def get_target():
     try:
-        url = f"https://games.roblox.com/v1/games/{PLACE_ID}/servers/Public?sortOrder=Asc&limit=100"
+        # Cambiamos el límite a 50 para evitar bloqueos de la API de Roblox
+        url = f"https://games.roblox.com/v1/games/{PLACE_ID}/servers/Public?sortOrder=Asc&limit=50"
         headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=5)
+        
         if response.status_code == 200:
             servers = response.json().get("data", [])
+            
+            # 1. Intento estricto: Buscar servidores con 1 a 7 jugadores (evitando servidores vacíos o llenos)
             for srv in servers:
                 playing = srv.get("playing", 0)
                 max_players = srv.get("maxPlayers", 0)
-                # Filtro estricto: Busca exclusivamente servidores con 6 o 7 jugadores
-                if 6 <= playing <= 7 and playing < max_players:
+                if 1 <= playing <= 7 and playing < max_players:
                     return jsonify({
                         "job_id": srv.get("id"),
                         "place_id": PLACE_ID
                     }), 200
-    except:
-        pass
+            
+            # 2. Respaldo (Fallback): Si no encuentra de 1-7, agarra el primer servidor disponible que tenga campo libre
+            for srv in servers:
+                playing = srv.get("playing", 0)
+                max_players = srv.get("maxPlayers", 0)
+                if playing < max_players:
+                    return jsonify({
+                        "job_id": srv.get("id"),
+                        "place_id": PLACE_ID
+                    }), 200
+                    
+    except Exception as e:
+        print(f"Error en /get-target: {e}")
 
     return jsonify({
         "job_id": "",
