@@ -8,15 +8,17 @@ PLACE_ID = "109983668079237"
 @app.route('/get-target', methods=['GET'])
 def get_target():
     cursor = ""
-    # Revisa hasta 3 páginas (300 servidores) para asegurar encontrar uno de 6-7
+    # Revisa hasta 3 páginas de servidores (300 servidores en total)
     for _ in range(3):
         url = f"https://games.roblox.com/v1/games/{PLACE_ID}/servers/Public?limit=100&cursor={cursor}"
         try:
-            res = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=3)
-            if res.status_code == 200:
-                data = res.json()
-                for srv in data.get("data", []):
-                    # Filtro exacto que tú quieres: entre 6 y 7 jugadores
+            response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=3)
+            if response.status_code == 200:
+                data = response.json()
+                servers = data.get("data", [])
+                
+                # Busca directamente un servidor con 6 o 7 jugadores
+                for srv in servers:
                     playing = srv.get("playing", 0)
                     if 6 <= playing <= 7:
                         return jsonify({
@@ -30,9 +32,13 @@ def get_target():
         except:
             break
             
-    # Si de verdad ninguno tiene 6-7 en ese momento, devuelve vacío
-    return jsonify({"job_id": "", "place_id": PLACE_ID}), 200
+    # Si ningún servidor tiene 6-7 en ese milisegundo, devuelve vacío
+    return jsonify({
+        "job_id": "",
+        "place_id": PLACE_ID
+    }), 200
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
     
