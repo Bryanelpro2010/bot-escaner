@@ -21,21 +21,12 @@ def get_target():
         if response.status_code == 200:
             servers = response.json().get("data", [])
             
-            # 1. Intento estricto: Buscar servidores con 1 a 7 jugadores
+            # Filtro estricto: Busca exclusivamente servidores con 6 o 7 jugadores (ni más ni menos)
             for srv in servers:
                 playing = srv.get("playing", 0)
                 max_players = srv.get("maxPlayers", 0)
-                if 1 <= playing <= 7 and playing < max_players:
-                    return jsonify({
-                        "job_id": srv.get("id"),
-                        "place_id": PLACE_ID
-                    }), 200
-            
-            # 2. Respaldo (Fallback): Si no encuentra de 1-7, busca cualquier servidor disponible
-            for srv in servers:
-                playing = srv.get("playing", 0)
-                max_players = srv.get("maxPlayers", 0)
-                if playing < max_players:
+                
+                if 6 <= playing <= 7 and playing < max_players:
                     return jsonify({
                         "job_id": srv.get("id"),
                         "place_id": PLACE_ID
@@ -52,3 +43,4 @@ def get_target():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+    
