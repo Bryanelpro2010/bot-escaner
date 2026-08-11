@@ -7,26 +7,25 @@ PLACE_ID = "109983668079237"
 
 @app.route('/get-target', methods=['GET'])
 def get_target():
-    # Buscamos en la primera página de servidores disponibles
-    url = f"https://games.roblox.com/v1/games/{PLACE_ID}/servers/Public?limit=100"
-    try:
-        response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=3)
-        if response.status_code == 200:
-            servers = response.json().get("data", [])
-            # Toma el primer servidor que tenga espacio libre y no sea el actual
-            for srv in servers:
-                if srv.get("playing", 0) < srv.get("maxPlayers", 0):
-                    return jsonify({
-                        "job_id": srv.get("id"),
-                        "place_id": PLACE_ID
-                    }), 200
-    except:
-        pass
+    cursor = ""
+    # 10 ciclos de 100 servidores = 1000 servidores
+    for _ in range(10): 
+        url = f"https://games.roblox.com/v1/games/{PLACE_ID}/servers/Public?limit=100&cursor={cursor}"
+        try:
+            res = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+            if res.status_code == 200:
+                data = res.json()
+                for srv in data.get("data", []):
+                    # Filtro exacto de 6 a 7 jugadores
+                    if 6 <= srv.get("playing", 0) <= 7:
+                        return jsonify({"job_id": srv["id"], "place_id": PLACE_ID})
+                
+                cursor = data.get("nextPageCursor")
+                if not cursor: break
+        except: break
     
-    # Si algo falla, devuelve un error básico para que el script de Roblox no se quede colgado
-    return jsonify({"job_id": "ERROR", "place_id": PLACE_ID}), 200
+    return jsonify({"job_id": "NONE", "place_id": PLACE_ID})
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
     
